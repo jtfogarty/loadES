@@ -16,6 +16,8 @@ import (
 	"github.com/olivere/elastic"
 )
 
+//https://discuss.elastic.co/t/exact-match-with-case-insensitivity/89582
+
 type Verse struct {
 	BCV        string `json:"bcv"`
 	KJVText    string `json:"kvj_text"`
@@ -50,6 +52,7 @@ type VerseDoc struct {
 	Verse     string    `json: "verse"`
 	ESid      uuid.UUID `json: "es_id"`
 	UTCTime   time.Time `json: "utc"`
+	DocID     int       `json:"doc_id"`
 }
 
 type Version struct {
@@ -88,7 +91,7 @@ func init() {
 	}
 }
 func main() {
-	createIndex()
+	//createIndex()
 	readJSON2ES()
 }
 func readJSON2ES() {
@@ -106,8 +109,8 @@ func readJSON2ES() {
 		} else if err != nil {
 			log.Fatal("Decode: ", err)
 		}
-		for _, verse := range verses {
-			vd := createDocStruc(verse.BCV, verse.KJVText, "kjv")
+		for i, verse := range verses {
+			vd := createDocStruc(verse.BCV, verse.KJVText, "kjv", i)
 			bulk.Add(elastic.NewBulkIndexRequest().Id(vd.ESid.String()).Doc(vd))
 			/*createDocStruc(verse.BCV, verse.ASVText, "asv")
 			createDocStruc(verse.BCV, verse.DRText, "dr")
@@ -141,7 +144,7 @@ var VersionName = map[string]string{
 	"wey":    "Weymouth New Testament",
 }
 
-func createDocStruc(bcv string, text string, version string) *VerseDoc {
+func createDocStruc(bcv string, text string, version string, i int) *VerseDoc {
 	var vd VerseDoc
 	var re = regexp.MustCompile(`[0-9]+:[0-9]+`)
 	var cv string
@@ -158,6 +161,7 @@ func createDocStruc(bcv string, text string, version string) *VerseDoc {
 	vd.Verse = strings.TrimSpace(text)
 	vd.ESid = uuid.Must(uuid.NewRandom())
 	vd.UTCTime = time.Now().UTC()
+	vd.DocID = i
 	return &vd
 	//b, err := json.Marshal(vd)
 	//checkErr(err)
